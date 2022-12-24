@@ -1,0 +1,32 @@
+{
+  "name": "ecurvelite",
+  "version": "1.0.0",
+  "description": "Lightweight elliptic curve key exchange and additional encryption/decryption library",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CraigHorwood/EcurveLite.git"
+  },
+  "keywords": [
+    "cryptography",
+    "encryption",
+    "decryption",
+    "elliptic",
+    "curve",
+    "key",
+    "exchange",
+    "security"
+  ],
+  "author": "Craig Horwood",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/CraigHorwood/EcurveLite/issues"
+  },
+  "homepage": "https://github.com/CraigHorwood/EcurveLite#readme",
+  "devDependencies": {
+    "jest": "^29.3.1"
+  }
+}
