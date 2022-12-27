@@ -205,16 +205,34 @@ function getNextKey(currentKey, rc) {
 }
 
 // Container object for encrypted data and associated metadata
-// "hex" is a string of hexadecimal digits, "originalLength" is the length of the original unpadded string
+// "hex" is a string of hexadecimal digits, "originalLength" is the length of the original unpadded string, "dataType" is the typeof the original data
 class EncryptedData {
-	constructor(hex, originalLength) {
+	constructor(hex, originalLength, dataType) {
 		this.hex = hex;
 		this.originalLength = originalLength;
+		this.dataType = dataType;
 	}
 }
 
-// Given string "str" and DataBlock "key", returns the encrypted string as a string of hexadecimal digits
-function encrypt(str, key) {
+// Given data "data" and DataBlock "key", returns the encrypted data as a string of hexadecimal digits
+function encrypt(data, key) {
+	// Convert data into a string, store type for decryption later
+	var str;
+	const dataType = typeof(data);
+	switch (dataType) {
+		case "string":
+			str = data;
+			break;
+		case "number":
+			str = data.toString();
+			break;
+		case "object":
+			str = JSON.stringify(data);
+			break;
+		default:
+			console.log("Invalid data type!");
+			return null;
+	}
 	// Convert str into an array of DataBlocks
 	var blocks = [];
 	const buffer = Buffer.from(str, "utf-8");
@@ -266,10 +284,10 @@ function encrypt(str, key) {
 		}
 	}
 
-	return new EncryptedData(hex, originalLength);
+	return new EncryptedData(hex, originalLength, dataType);
 }
 
-// Given EncryptedData object "encryptedData" and DataBlock "key", returns the decrypted data as a string
+// Given EncryptedData object "encryptedData" and DataBlock "key", returns the decrypted data as its original data type
 function decrypt(encryptedData, key) {
 	// Convert EncryptedData object into an array of DataBlocks
 	var blocks = [];
@@ -312,7 +330,18 @@ function decrypt(encryptedData, key) {
 	while (fullBytes.length > encryptedData.originalLength) {
 		fullBytes.pop();
 	}
-	return Buffer.from(fullBytes).toString("utf-8");
+	const str = Buffer.from(fullBytes).toString("utf-8");
+	switch (encryptedData.dataType) {
+		case "string":
+			return str;
+		case "number":
+			return parseInt(str);
+		case "object":
+			return JSON.parse(str);
+		default:
+			console.log("Invalid data type!");
+			return null;
+	}
 }
 
 module.exports = {

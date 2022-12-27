@@ -65,13 +65,36 @@ class EllipticCurve {
 	}
 }
 
-const BRAINPOOLP160R1 = new EllipticCurve(
-	0xe95e4a5f737059dc60dfc7ad95b3d8139515620fn,
-	0x340e7be2a280eb74e2be61bada745d97e8f7c300n,
-	0n,
-	new EllipticCurvePoint(0xbed5af16ea3f6a4f62938c4631eb5af7bdbcdbc3n, 0x1667cb477a1a8ec338f94741669c976316da6321n),
-	0xe95e4a5f737059dc60df5991d45029409e60fc09n
-);
+const CURVES = {
+	"brainpoolP160r1": new EllipticCurve(
+		0xe95e4a5f737059dc60dfc7ad95b3d8139515620fn,
+		0x340e7be2a280eb74e2be61bada745d97e8f7c300n,
+		0n,
+		new EllipticCurvePoint(0xbed5af16ea3f6a4f62938c4631eb5af7bdbcdbc3n, 0x1667cb477a1a8ec338f94741669c976316da6321n),
+		0xe95e4a5f737059dc60df5991d45029409e60fc09n
+	),
+	"prime192v1": new EllipticCurve(
+		0xfffffffffffffffffffffffffffffffeffffffffffffffffn,
+		0xfffffffffffffffffffffffffffffffefffffffffffffffcn,
+		0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1n,
+		new EllipticCurvePoint(0x188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012n, 0x07192b95ffc8da78631011ed6b24cdd573f977a11e794811n),
+		0xffffffffffffffffffffffff99def836146bc9b1b4d22831n
+	),
+	"prime256v1": new EllipticCurve(
+		0xffffffff00000001000000000000000000000000ffffffffffffffffffffffffn,
+		0xffffffff00000001000000000000000000000000fffffffffffffffffffffffcn,
+		0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604bn,
+		new EllipticCurvePoint(0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n, 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n),
+		0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n
+	),
+	"ansip384r1": new EllipticCurve(
+		0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000ffffffffn,
+		0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000fffffffcn,
+		0xb3312fa7e23ee7e4988e056be3f82d19181d9c6efe8141120314088f5013875ac656398d8a2ed19d2a85c8edd3ec2aefn,
+		new EllipticCurvePoint(0xaa87ca22be8b05378eb1c71ef320ad746e1d3b628ba79b9859f741e082542a385502f25dbf55296c3a545e3872760ab7n, 0x3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3113b5f0b8c00a60b1ce1d7e819d7a431d7c90ea0e5fn),
+		0xffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf581a0db248b0a77aecec196accc52973n
+	)
+};
 
 // Both endpoints should have one of these objects, using the same EllipticCurve object (field "curve") to exchange the shared secret
 class KeyPair {
@@ -104,5 +127,5 @@ module.exports = {
 	EllipticCurvePoint,
 	EllipticCurve,
 	KeyPair,
-	BRAINPOOLP160R1
+	CURVES
 };

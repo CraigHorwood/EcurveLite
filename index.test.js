@@ -1,8 +1,8 @@
 const ecl = require("./src/index");
 
 test("Both endpoints should calculate the same shared secret.", () => {
-	const curve = ecl.ecurve.BRAINPOOLP160R1;
-	for (var i = 0; i < 10; i++) {
+	for (curveName in ecl.ecurve.CURVES) {
+		const curve = ecl.ecurve.CURVES[curveName];
 		const userA = new ecl.ecurve.KeyPair(curve);
 		const userB = new ecl.ecurve.KeyPair(curve);
 		const secretA = userA.calculateSharedSecret(userB.publicKey);
@@ -12,9 +12,37 @@ test("Both endpoints should calculate the same shared secret.", () => {
 });
 
 test("Input string should be the same after being encrypted then decrypted.", () => {
-	const str = "This arbitrarily long string should be the same after going through the encryption and decryption process.";
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	const strLen = Math.floor(Math.random() * 160) + 16;
+	var str = "";
+	while (str.length < strLen) {
+		str += alphabet[Math.floor(Math.random() * alphabet.length)];
+	}
 	const key = ecl.crypt.getFirstKey(BigInt(Math.floor(Math.random() * 1000000000)) * BigInt(Math.floor(Math.random() * 1000000000)));
 	const encrypted = ecl.crypt.encrypt(str, key);
 	const decrypted = ecl.crypt.decrypt(encrypted, key);
-	expect(decrypted).toEqual(str);
+	expect(decrypted).toBe(str);
+});
+
+test("Input number should be the same after being encrypted then decrypted.", () => {
+	const rInt = Math.floor(Math.random() * 1000000000) + 1000000000;
+	const key = ecl.crypt.getFirstKey(BigInt(Math.floor(Math.random() * 1000000000)) * BigInt(Math.floor(Math.random() * 1000000000)));
+	const encrypted = ecl.crypt.encrypt(rInt, key);
+	const decrypted = ecl.crypt.decrypt(encrypted, key);
+	expect(decrypted).toBe(rInt);
+});
+
+test("Input JSON object should be the same after being encrypted then decrypted.", () => {
+	const obj = {"a": 0, "b": "string1", "c": [{"d": 1}, {"d": 2}, {"d": 3, "e": "string2"}]};
+	const key = ecl.crypt.getFirstKey(BigInt(Math.floor(Math.random() * 1000000000)) * BigInt(Math.floor(Math.random() * 1000000000)));
+	const encrypted = ecl.crypt.encrypt(obj, key);
+	const decrypted = ecl.crypt.decrypt(encrypted, key);
+	expect(decrypted).toEqual(obj);
+});
+
+test("Input array should be the same after being encrypted then decrypted.", () => {
+	const arr = ["a", "b", "c", "d", "e", "f", "g"];const key = ecl.crypt.getFirstKey(BigInt(Math.floor(Math.random() * 1000000000)) * BigInt(Math.floor(Math.random() * 1000000000)));
+	const encrypted = ecl.crypt.encrypt(arr, key);
+	const decrypted = ecl.crypt.decrypt(encrypted, key);
+	expect(decrypted).toEqual(arr);
 });
