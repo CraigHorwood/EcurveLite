@@ -35,6 +35,9 @@ const S_BOX_INV = [
 	0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
 ];
 const HEX_MAP = "0123456789abcdef";
+const KEY_SIZE_128 = 16;
+const KEY_SIZE_192 = 24;
+const KEY_SIZE_256 = 32;
 
 function galoisMultiply(byte0, byte1) {
 	var result = 0;
@@ -89,7 +92,7 @@ const RCON = [
 ];
 
 // Block consisting of four 4-byte "words", the primary unit of encryption/decryption
-// All forms of data, including the encryption key, are converted into this format
+// All forms of input data are converted into this format
 class DataBlock {
 	constructor (bytes) {
 		this.bytes = bytes
@@ -167,54 +170,73 @@ class DataBlock {
 	}
 
 	// Gets a Word object that can be manipulated independently of this DataBlock.
-	// index must be in range [0, 3], for the 0th to 3rd column of this DataBlock
+	// i must be in range [0, 3], for the 0th to 3rd column of this DataBlock
 	getWord(index) {
-		const offs = index << 2;
+		const offs = i << 2;
 		return new Word(this.bytes.slice(offs, offs + 4));
 	}
 }
 
-// Convert shared secret BigInt to a DataBlock
-function getFirstKey(keyInteger) {
+// Contains the full key schedule for 128-, 192-, or 256-bit keys
+class Key {
+	constructor (bytes, keySizeWords) {
+		this.rounds = keySizeWords + 7;
+		var words = new Array(this.rounds << 2).fill(null);
+		// Create key schedule
+		for (var i = 0; i < words.length; i++) {
+			if (i < keySizeWords) {
+				words[i] = new Word(bytes.slice(i << 2, (i << 2) + 4));
+			} else {
+				var word = new Word(words[i - keySizeWords].bytes);
+				var lastWord = new Word(words[i - 1].bytes);
+				if (i % keySizeWords == 0) {
+					word.xor(lastWord.rotate().sub()).xor(RCON[Math.floor(i / keySizeWords) - 1]);
+				} else if (keySizeWords > 6 && i % keySizeWords == 4) {
+					word.xor(lastWord.sub());
+				} else {
+					word.xor(lastWord);
+				}
+				words[i] = word;
+			}
+		}
+		this.roundKeys = new Array(this.rounds).fill(null);
+		for (var i = 0; i < this.roundKeys.length; i++) {
+			const offs = i << 2;
+			const col0 = words[offs].bytes;
+			const col1 = words[offs + 1].bytes;
+			const col2 = words[offs + 2].bytes;
+			const col3 = words[offs + 3].bytes;
+			this.roundKeys[i] = new DataBlock(col0.concat(col1).concat(col2).concat(col3));
+		}
+	}
+}
+
+// Convert shared secret BigInt to a Key object with specified size (128, 192, or 256)
+function createKey(keyInteger, keyLength) {
 	var bytes = [];
 	while (keyInteger) {
 		bytes.unshift(Number(keyInteger & 0xffn));
-		if (bytes.length == 16) {
-			return new DataBlock(bytes);
+		if (bytes.length == keyLength) {
+			return new Key(bytes, keyLength >> 2);
 		}
 		keyInteger >>= 8n;
 	}
 	while (bytes.length < 16) {
 		bytes.unshift(0);
 	}
-	return new DataBlock(bytes);
-}
-
-// Get the next key in the schedule.
-// currentKey is a DataBlock, rc is a Word in the RCON array
-// Returns the next key as a DataBlock
-function getNextKey(currentKey, rc) {
-	var col0 = currentKey.getWord(0);
-	var subCol = currentKey.getWord(3);
-	subCol.rotate().sub();
-	col0.xor(subCol).xor(rc);
-	var col1 = currentKey.getWord(1).xor(col0);
-	var col2 = currentKey.getWord(2).xor(col1);
-	var col3 = currentKey.getWord(3).xor(col2);
-	return new DataBlock(col0.bytes.concat(col1.bytes).concat(col2.bytes).concat(col3.bytes));
+	return new Key(bytes, keyLength >> 2);
 }
 
 // Container object for encrypted data and associated metadata
-// "hex" is a string of hexadecimal digits, "originalLength" is the length of the original unpadded string, "dataType" is the typeof the original data
+// "hex" is a string of hexadecimal digits, "dataType" is the typeof the original data
 class EncryptedData {
-	constructor(hex, originalLength, dataType) {
+	constructor(hex, dataType) {
 		this.hex = hex;
-		this.originalLength = originalLength;
 		this.dataType = dataType;
 	}
 }
 
-// Given data "data" and DataBlock "key", returns the encrypted data as a string of hexadecimal digits
+// Given data "data" and Key "key", returns the encrypted data as a string of hexadecimal digits
 function encrypt(data, key) {
 	// Convert data into a string, store type for decryption later
 	var str;
@@ -236,6 +258,7 @@ function encrypt(data, key) {
 	// Convert str into an array of DataBlocks
 	var blocks = [];
 	const buffer = Buffer.from(str, "utf-8");
+	var paddingLength = 0;
 	var i = 0;
 	while (i < buffer.length) {
 		const nextOffs = i + 16;
@@ -248,7 +271,9 @@ function encrypt(data, key) {
 			}
 			while (bytes.length < 16) {
 				bytes.push(0);
+				paddingLength++;
 			}
+			bytes[15] = paddingLength;
 		} else {
 			while (i < nextOffs) {
 				bytes.push(buffer[i]);
@@ -257,20 +282,16 @@ function encrypt(data, key) {
 		}
 		blocks.push(new DataBlock(bytes));
 	}
-	// By this time, i is equal to the original unpadded length in bytes of the input string
-	const originalLength = i;
 	
 	// Encrypt each block
 	for (block of blocks) {
-		var currentKey = key;
-		block.xor(currentKey);
-		for (var i = 0; i < 10; i++) {
-			currentKey = getNextKey(currentKey, RCON[i]);
+		block.xor(key.roundKeys[0]);
+		for (var i = 1; i < key.roundKeys.length; i++) {
 			block.sub().shiftRows();
-			if (i < 9) {
+			if (i < 10) {
 				block.mixColumns();
 			}
-			block.xor(currentKey);
+			block.xor(key.roundKeys[i]);
 		}
 	}
 
@@ -284,10 +305,10 @@ function encrypt(data, key) {
 		}
 	}
 
-	return new EncryptedData(hex, originalLength, dataType);
+	return new EncryptedData(hex, dataType);
 }
 
-// Given EncryptedData object "encryptedData" and DataBlock "key", returns the decrypted data as its original data type
+// Given EncryptedData object "encryptedData" and Key "key", returns the decrypted data as its original data type
 function decrypt(encryptedData, key) {
 	// Convert EncryptedData object into an array of DataBlocks
 	var blocks = [];
@@ -302,24 +323,16 @@ function decrypt(encryptedData, key) {
         blocks.push(new DataBlock(bytes));
     }
 
-	// Generate all keys in the key schedule so they can be used in reverse order
-	var keySchedule = [key];
-	for (var i = 0; i < 10; i++) {
-		const nextKey = getNextKey(keySchedule[i], RCON[i]);
-		keySchedule.push(nextKey);
-	}
-
-	// Decrypt each block using the keys
+	// Decrypt each block
 	for (block of blocks) {
-		for (var i = 10; i > 0; i--) {
-			var currentKey = keySchedule[i];
-			block.xor(currentKey);
+		for (var i = key.rounds - 1; i > 0; i--) {
+			block.xor(key.roundKeys[i]);
 			if (i < 10) {
 				block.mixColumnsInverse();
 			}
 			block.shiftRowsInverse().subInverse();
 		}
-		block.xor(keySchedule[0]);
+		block.xor(key.roundKeys[0]);
 	}
 
 	// Convert the decrypted blocks back into a UTF-8 string
@@ -327,8 +340,10 @@ function decrypt(encryptedData, key) {
 	for (block of blocks) {
 		fullBytes = fullBytes.concat(block.bytes);
 	}
-	while (fullBytes.length > encryptedData.originalLength) {
+	var paddingLength = fullBytes[fullBytes.length - 1];
+	while (paddingLength > 0) {
 		fullBytes.pop();
+		paddingLength--;
 	}
 	const str = Buffer.from(fullBytes).toString("utf-8");
 	switch (encryptedData.dataType) {
@@ -346,7 +361,11 @@ function decrypt(encryptedData, key) {
 
 module.exports = {
 	EncryptedData,
+	Key,
 	encrypt,
 	decrypt,
-	getFirstKey
+	createKey,
+	KEY_SIZE_128,
+	KEY_SIZE_192,
+	KEY_SIZE_256
 };
