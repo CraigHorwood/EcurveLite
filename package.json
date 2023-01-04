@@ -2,7 +2,7 @@
   "name": "ecurvelite",
   "version": "1.0.0",
   "description": "Lightweight elliptic curve key exchange and additional encryption/decryption library",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "jest"
   },

@@ -1,0 +1,10 @@
+{
+	"name": "ecurvelite-example-chat",
+	"version": "1.0.0",
+	"description": "Simple encrypted chat application using EcurveLite.",
+	"dependencies": {
+		"ecurvelite": "file:../..",
+		"express": "^4.18.2",
+		"socket.io": "^4.5.4"
+	}
+}

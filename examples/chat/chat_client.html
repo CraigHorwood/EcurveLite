@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>EcurveLite Server Chat</title>
+	<script src="ecurvelite.js"></script>
+	<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+	<script type="text/javascript">
+		var curve = CURVES.brainpoolP160r1;
+		console.log(curve);
+		var socket = io();
+	</script>
+</head>
+<body>
+	<div id="chat" style="overflow-y: scroll;"></div>
+	<div id="message_area" style="padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box;">
+		<input type="text" id="message" style="flex-grow: 1;" />
+		<button>Send</button>
+	</div>
+</body>
+</html>
