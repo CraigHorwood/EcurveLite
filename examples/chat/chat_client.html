@@ -7,16 +7,25 @@
 	<script src="ecurvelite.js"></script>
 	<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 	<script type="text/javascript">
-		var curve = CURVES.brainpoolP160r1;
-		console.log(curve);
+		const curve = ecl.CURVES.brainpoolP160r1;
+		const keys = new ecl.KeyPair(curve);
 		var socket = io();
+		socket.emit("public_key", keys.publicKey.encode());
+		var sharedKey = null;
+		socket.once("public_key", (publicKey) => {
+			sharedKey = ecl.createKey(keys.calculateSharedSecret(ecl.EllipticCurvePoint.decode(publicKey)), ecl.KEY_SIZE_128);
+			const msg = "This is a test message to be independently decrypted by the server.";
+			const encryptedMsg = ecl.encrypt(msg, sharedKey);
+			socket.emit("chat_message", encryptedMsg);
+			// Start listening for messages from the server
+		});
 	</script>
 </head>
 <body>
 	<div id="chat" style="overflow-y: scroll;"></div>
 	<div id="message_area" style="padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box;">
 		<input type="text" id="message" style="flex-grow: 1;" />
-		<button>Send</button>
+		<button id="send_button">Send</button>
 	</div>
 </body>
 </html>

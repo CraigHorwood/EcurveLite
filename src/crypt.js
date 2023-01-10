@@ -258,29 +258,21 @@ function encrypt(data, key) {
 	// Convert str into an array of DataBlocks
 	var blocks = [];
 	const buffer = Buffer.from(str, "utf-8");
-	var paddingLength = 0;
-	var i = 0;
-	while (i < buffer.length) {
-		const nextOffs = i + 16;
-		var bytes = [];
-		if (nextOffs >= buffer.length) {
-			// Pad the end of the last block with 00 bytes
-			while (i < buffer.length) {
-				bytes.push(buffer[i]);
-				i++;
-			}
-			while (bytes.length < 16) {
-				bytes.push(0);
-				paddingLength++;
-			}
-			bytes[15] = paddingLength;
-		} else {
-			while (i < nextOffs) {
-				bytes.push(buffer[i]);
-				i++;
-			}
+	var bytes = [];
+	for (var i = 0; i < buffer.length; i++) {
+		bytes.push(buffer[i]);
+		if (bytes.length == 16) {
+			blocks.push(new DataBlock(bytes));
+			bytes = [];
 		}
-		blocks.push(new DataBlock(bytes));
+	}
+	const paddingLength = 16 - (buffer.length & 15);
+	for (var i = 0; i < paddingLength; i++) {
+		bytes.push(0);
+		if (bytes.length == 16) {
+			bytes[15] = paddingLength;
+			blocks.push(new DataBlock(bytes));
+		}
 	}
 	
 	// Encrypt each block

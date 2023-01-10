@@ -24,19 +24,21 @@ app.get("/ecurvelite.js", (req, res) => {
 });
 
 io.on("connection", (socket) => {
+	console.log("Connection");
 	socket.on("public_key", (publicKey) => {
-		userKeys[socket.id] = serverKeys.calculatedSharedSecret(publicKey);
+		userKeys[socket.id] = ecl.createKey(serverKeys.calculateSharedSecret(ecl.EllipticCurvePoint.decode(publicKey)), ecl.KEY_SIZE_128);
+		socket.emit("public_key", serverKeys.publicKey.encode());
 	});
 	socket.on("chat_message", (encryptedMsg) => {
 		const msg = ecl.decrypt(encryptedMsg, userKeys[socket.id]);
 		console.log(msg);
 	});
 	socket.on("disconnect", () => {
+		delete userKeys[socket.id];
 		console.log("User disconnected.");
 	});
 });
 
 server.listen(3000, () => {
 	console.log("Listening on *:3000");
-	// Listen for incoming messages (e.g. shared secret, chat message)
 });
