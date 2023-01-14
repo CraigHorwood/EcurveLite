@@ -27,17 +27,17 @@ class EllipticCurvePoint {
 		this.y = y;
 		this.isInfinity = isInfinity;
 	}
+}
 
-	// Return a new JSON object replacing BigInt fields with strings
-	// This object is safe to serialise with socket.io
-	encode() {
-		return {x: this.x.toString(), y: this.y.toString(), isInfinity: this.isInfinity};
-	}
+// Return a new JSON object replacing BigInt fields with strings
+// This object is safe to serialise with socket.io
+function encodePoint(p) {
+	return {x: p.x.toString(), y: p.y.toString(), isInfinity: this.isInfinity};
+}
 
-	// Return a new EllipticCurvePoint from a received socket.io-safe JSON object
-	static decode(p) {
-		return new EllipticCurvePoint(BigInt(p.x), BigInt(p.y), p.isInfinity);
-	}
+// Return a new EllipticCurvePoint from a received socket.io-safe JSON object
+function decodePoint(obj) {
+	return new EllipticCurvePoint(BigInt(obj.x), BigInt(obj.y), obj.isInfinity);
 }
 
 class EllipticCurve {
@@ -138,5 +138,7 @@ module.exports = {
 	EllipticCurvePoint,
 	EllipticCurve,
 	KeyPair,
+	encodePoint,
+	decodePoint,
 	CURVES
 };

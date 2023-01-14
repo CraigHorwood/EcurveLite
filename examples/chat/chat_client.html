@@ -4,16 +4,16 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title>EcurveLite Server Chat</title>
-	<script src="ecurvelite.js"></script>
+	<script src="ecurvelite.min.js"></script>
 	<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 	<script type="text/javascript">
 		const curve = ecl.CURVES.brainpoolP160r1;
 		const keys = new ecl.KeyPair(curve);
 		var socket = io();
-		socket.emit("public_key", keys.publicKey.encode());
+		socket.emit("public_key", ecl.encodePoint(keys.publicKey));
 		var sharedKey = null;
 		socket.once("public_key", (publicKey) => {
-			sharedKey = ecl.createKey(keys.calculateSharedSecret(ecl.EllipticCurvePoint.decode(publicKey)), ecl.KEY_SIZE_128);
+			sharedKey = ecl.createKey(keys.calculateSharedSecret(ecl.decodePoint(publicKey)), ecl.KEY_SIZE_128);
 			const msg = "This is a test message to be independently decrypted by the server.";
 			const encryptedMsg = ecl.encrypt(msg, sharedKey);
 			socket.emit("chat_message", encryptedMsg);

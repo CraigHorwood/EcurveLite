@@ -19,15 +19,15 @@ app.get("/", (req, res) => {
 	res.sendFile(__dirname + "/chat_client.html");
 });
 
-app.get("/ecurvelite.js", (req, res) => {
-	res.sendFile(path.resolve(__dirname + "../../../client/ecurvelite.js"));
+app.get("/ecurvelite.min.js", (req, res) => {
+	res.sendFile(path.resolve(__dirname + "../../../client/ecurvelite.min.js"));
 });
 
 io.on("connection", (socket) => {
 	console.log("Connection");
 	socket.on("public_key", (publicKey) => {
-		userKeys[socket.id] = ecl.createKey(serverKeys.calculateSharedSecret(ecl.EllipticCurvePoint.decode(publicKey)), ecl.KEY_SIZE_128);
-		socket.emit("public_key", serverKeys.publicKey.encode());
+		userKeys[socket.id] = ecl.createKey(serverKeys.calculateSharedSecret(ecl.decodePoint(publicKey)), ecl.KEY_SIZE_128);
+		socket.emit("public_key", ecl.encodePoint(serverKeys.publicKey));
 	});
 	socket.on("chat_message", (encryptedMsg) => {
 		const msg = ecl.decrypt(encryptedMsg, userKeys[socket.id]);
